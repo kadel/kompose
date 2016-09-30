@@ -19,7 +19,6 @@ package kobject
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/fatih/structs"
-	"k8s.io/kubernetes/pkg/api"
 )
 
 var unsupportedKey = map[string]int{
@@ -122,7 +121,7 @@ type ConvertOptions struct {
 	CreateDeploymentConfig bool
 	CreateChart            bool
 	GenerateYaml           bool
-	Replicas               int
+	Replicas               int32
 	InputFile              string
 	OutFile                string
 }
@@ -161,7 +160,7 @@ type EnvVar struct {
 type Ports struct {
 	HostPort      int32
 	ContainerPort int32
-	Protocol      api.Protocol
+	Protocol      string
 }
 
 func CheckUnsupportedKey(service interface{}) {

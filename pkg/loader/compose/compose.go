@@ -80,7 +80,7 @@ func loadPorts(composePorts []string) ([]kobject.Ports, error) {
 			ports = append(ports, kobject.Ports{
 				HostPort:      int32(hostPortInt),
 				ContainerPort: int32(containerPortInt),
-				Protocol:      proto,
+				Protocol:      string(proto),
 			})
 		} else {
 			containerPortInt, err := strconv.Atoi(portNoProto)
@@ -89,7 +89,7 @@ func loadPorts(composePorts []string) ([]kobject.Ports, error) {
 			}
 			ports = append(ports, kobject.Ports{
 				ContainerPort: int32(containerPortInt),
-				Protocol:      proto,
+				Protocol:      string(proto),
 			})
 		}
 
@@ -165,6 +165,7 @@ func (c *Compose) LoadFile(file string) kobject.KomposeObject {
 
 			// load environment variables
 			envs := loadEnvVars(composeServiceConfig.Environment.ToMap())
+
 			serviceConfig.Environment = envs
 
 			// load ports

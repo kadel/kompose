@@ -22,13 +22,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 
-	// install kubernetes api
-	_ "k8s.io/kubernetes/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
-
-	// install OpenShift apis
-	_ "github.com/openshift/origin/pkg/deploy/api/install"
-
 	"github.com/skippbox/kompose/pkg/kobject"
 	"github.com/skippbox/kompose/pkg/loader"
 	"github.com/skippbox/kompose/pkg/transformer"

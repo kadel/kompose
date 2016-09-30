@@ -21,48 +21,35 @@ import (
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/skippbox/kompose/pkg/kobject"
 	"github.com/skippbox/kompose/pkg/transformer"
 
-	// install kubernetes api
-	"k8s.io/kubernetes/pkg/api"
-	_ "k8s.io/kubernetes/pkg/api/install"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	//"k8s.io/kubernetes/pkg/controller/daemon"
-	"time"
-
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/client-go/1.5/kubernetes"
+	v1 "k8s.io/client-go/1.5/pkg/api/v1"
+	v1beta1 "k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/1.5/pkg/runtime"
+	"k8s.io/client-go/1.5/pkg/util/intstr"
+	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
 type Kubernetes struct {
 }
 
 // Init RC object
-func InitRC(name string, service kobject.ServiceConfig, replicas int) *api.ReplicationController {
-	rc := &api.ReplicationController{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       "ReplicationController",
-			APIVersion: "v1",
-		},
-		ObjectMeta: api.ObjectMeta{
+func InitRC(name string, service kobject.ServiceConfig, replicas int32) *v1.ReplicationController {
+	rc := &v1.ReplicationController{
+
+		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
-		Spec: api.ReplicationControllerSpec{
-			Replicas: int32(replicas),
-			Template: &api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
+		Spec: v1.ReplicationControllerSpec{
+			Replicas: &replicas,
+			Template: &v1.PodTemplateSpec{
+				ObjectMeta: v1.ObjectMeta{
 					Labels: transformer.ConfigLabels(name),
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{
 							Name:  name,
 							Image: service.Image,
@@ -76,17 +63,14 @@ func InitRC(name string, service kobject.ServiceConfig, replicas int) *api.Repli
 }
 
 // Init Svc object
-func InitSvc(name string, service kobject.ServiceConfig) *api.Service {
-	svc := &api.Service{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       "Service",
-			APIVersion: "v1",
-		},
-		ObjectMeta: api.ObjectMeta{
+func InitSvc(name string, service kobject.ServiceConfig) *v1.Service {
+	svc := &v1.Service{
+
+		ObjectMeta: v1.ObjectMeta{
 			Name:   name,
 			Labels: transformer.ConfigLabels(name),
 		},
-		Spec: api.ServiceSpec{
+		Spec: v1.ServiceSpec{
 			Selector: transformer.ConfigLabels(name),
 		},
 	}
@@ -94,20 +78,17 @@ func InitSvc(name string, service kobject.ServiceConfig) *api.Service {
 }
 
 // Init Deployment
-func InitD(name string, service kobject.ServiceConfig, replicas int) *extensions.Deployment {
-	dc := &extensions.Deployment{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "extensions/v1beta1",
-		},
-		ObjectMeta: api.ObjectMeta{
+func InitD(name string, service kobject.ServiceConfig, replicas int32) *v1beta1.Deployment {
+	dc := &v1beta1.Deployment{
+
+		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
-		Spec: extensions.DeploymentSpec{
-			Replicas: int32(replicas),
-			Template: api.PodTemplateSpec{
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: &replicas,
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{
 							Name:  name,
 							Image: service.Image,
@@ -121,19 +102,15 @@ func InitD(name string, service kobject.ServiceConfig, replicas int) *extensions
 }
 
 // Init DS object
-func InitDS(name string, service kobject.ServiceConfig) *extensions.DaemonSet {
-	ds := &extensions.DaemonSet{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       "DaemonSet",
-			APIVersion: "extensions/v1beta1",
-		},
-		ObjectMeta: api.ObjectMeta{
+func InitDS(name string, service kobject.ServiceConfig) *v1beta1.DaemonSet {
+	ds := &v1beta1.DaemonSet{
+		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
-		Spec: extensions.DaemonSetSpec{
-			Template: api.PodTemplateSpec{
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+		Spec: v1beta1.DaemonSetSpec{
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{
 							Name:  name,
 							Image: service.Image,
@@ -147,12 +124,12 @@ func InitDS(name string, service kobject.ServiceConfig) *extensions.DaemonSet {
 }
 
 // Configure the container ports.
-func ConfigPorts(name string, service kobject.ServiceConfig) []api.ContainerPort {
-	ports := []api.ContainerPort{}
+func ConfigPorts(name string, service kobject.ServiceConfig) []v1.ContainerPort {
+	ports := []v1.ContainerPort{}
 	for _, port := range service.Port {
-		ports = append(ports, api.ContainerPort{
+		ports = append(ports, v1.ContainerPort{
 			ContainerPort: port.ContainerPort,
-			Protocol:      port.Protocol,
+			Protocol:      v1.Protocol(port.Protocol),
 		})
 	}
 
@@ -160,8 +137,8 @@ func ConfigPorts(name string, service kobject.ServiceConfig) []api.ContainerPort
 }
 
 // Configure the container service ports.
-func ConfigServicePorts(name string, service kobject.ServiceConfig) []api.ServicePort {
-	servicePorts := []api.ServicePort{}
+func ConfigServicePorts(name string, service kobject.ServiceConfig) []v1.ServicePort {
+	servicePorts := []v1.ServicePort{}
 	for _, port := range service.Port {
 		if port.HostPort == 0 {
 			port.HostPort = port.ContainerPort
@@ -169,9 +146,9 @@ func ConfigServicePorts(name string, service kobject.ServiceConfig) []api.Servic
 		var targetPort intstr.IntOrString
 		targetPort.IntVal = port.ContainerPort
 		targetPort.StrVal = strconv.Itoa(int(port.ContainerPort))
-		servicePorts = append(servicePorts, api.ServicePort{
+		servicePorts = append(servicePorts, v1.ServicePort{
 			Name:       strconv.Itoa(int(port.HostPort)),
-			Protocol:   port.Protocol,
+			Protocol:   v1.Protocol(port.Protocol),
 			Port:       port.HostPort,
 			TargetPort: targetPort,
 		})
@@ -180,10 +157,10 @@ func ConfigServicePorts(name string, service kobject.ServiceConfig) []api.Servic
 }
 
 // Configure the container volumes.
-func ConfigVolumes(service kobject.ServiceConfig) ([]api.VolumeMount, []api.Volume) {
-	volumesMount := []api.VolumeMount{}
-	volumes := []api.Volume{}
-	volumeSource := api.VolumeSource{}
+func ConfigVolumes(service kobject.ServiceConfig) ([]v1.VolumeMount, []v1.Volume) {
+	volumesMount := []v1.VolumeMount{}
+	volumes := []v1.Volume{}
+	volumeSource := v1.VolumeSource{}
 	for _, volume := range service.Volumes {
 		name, host, container, mode, err := transformer.ParseVolume(volume)
 		if err != nil {
@@ -198,23 +175,23 @@ func ConfigVolumes(service kobject.ServiceConfig) ([]api.VolumeMount, []api.Volu
 		// check if ro/rw mode is defined, default rw
 		readonly := len(mode) > 0 && mode == "ro"
 
-		volumesMount = append(volumesMount, api.VolumeMount{Name: name, ReadOnly: readonly, MountPath: container})
+		volumesMount = append(volumesMount, v1.VolumeMount{Name: name, ReadOnly: readonly, MountPath: container})
 
 		if len(host) > 0 {
 			logrus.Warningf("Volume mount on the host %q isn't supported - ignoring path on the host", host)
 		}
-		volumeSource = api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}
+		volumeSource = v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}
 
-		volumes = append(volumes, api.Volume{Name: name, VolumeSource: volumeSource})
+		volumes = append(volumes, v1.Volume{Name: name, VolumeSource: volumeSource})
 	}
 	return volumesMount, volumes
 }
 
 // Configure the environment variables.
-func ConfigEnvs(name string, service kobject.ServiceConfig) []api.EnvVar {
-	envs := []api.EnvVar{}
+func ConfigEnvs(name string, service kobject.ServiceConfig) []v1.EnvVar {
+	envs := []v1.EnvVar{}
 	for _, v := range service.Environment {
-		envs = append(envs, api.EnvVar{
+		envs = append(envs, v1.EnvVar{
 			Name:  v.Name,
 			Value: v.Value,
 		})
@@ -265,22 +242,19 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 }
 
 // Updates the given object with the given pod template update function and ObjectMeta update function
-func UpdateController(obj runtime.Object, updateTemplate func(*api.PodTemplateSpec), updateMeta func(meta *api.ObjectMeta)) {
+func UpdateController(obj runtime.Object, updateTemplate func(*v1.PodTemplateSpec), updateMeta func(meta *v1.ObjectMeta)) {
 	switch t := obj.(type) {
-	case *api.ReplicationController:
+	case *v1.ReplicationController:
 		if t.Spec.Template == nil {
-			t.Spec.Template = &api.PodTemplateSpec{}
+			t.Spec.Template = &v1.PodTemplateSpec{}
 		}
 		updateTemplate(t.Spec.Template)
 		updateMeta(&t.ObjectMeta)
-	case *extensions.Deployment:
+	case *v1beta1.Deployment:
 		updateTemplate(&t.Spec.Template)
 		updateMeta(&t.ObjectMeta)
-	case *extensions.DaemonSet:
+	case *v1beta1.DaemonSet:
 		updateTemplate(&t.Spec.Template)
-		updateMeta(&t.ObjectMeta)
-	case *deployapi.DeploymentConfig:
-		updateTemplate(t.Spec.Template)
 		updateMeta(&t.ObjectMeta)
 	}
 }
@@ -293,26 +267,34 @@ func (k *Kubernetes) Deploy(komposeObject kobject.KomposeObject, opt kobject.Con
 	fmt.Println("We are going to create Kubernetes deployments and services for your Dockerized application. \n" +
 		"If you need different kind of resources, use the 'kompose convert' and 'kubectl create -f' commands instead. \n")
 
-	factory := cmdutil.NewFactory(nil)
-	clientConfig, err := factory.ClientConfig()
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	// if you want to change the loading rules (which files in which order), you can do so here
+
+	configOverrides := &clientcmd.ConfigOverrides{}
+	// if you want to change override values or bind them to flags, there are methods to help you
+
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+	config, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return err
 	}
-	namespace, _, err := factory.DefaultNamespace()
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	client := client.NewOrDie(clientConfig)
+	client := clientset.Core()
 
 	for _, v := range objects {
 		switch t := v.(type) {
-		case *extensions.Deployment:
+		case *v1beta1.Deployment:
 			_, err := client.Deployments(namespace).Create(t)
 			if err != nil {
 				return err
 			}
 			logrus.Infof("Successfully created deployment: %s", t.Name)
-		case *api.Service:
+		case *v1.Service:
 			_, err := client.Services(namespace).Create(t)
 			if err != nil {
 				return err
@@ -327,44 +309,44 @@ func (k *Kubernetes) Deploy(komposeObject kobject.KomposeObject, opt kobject.Con
 
 func (k *Kubernetes) Undeploy(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
 
-	factory := cmdutil.NewFactory(nil)
-	clientConfig, err := factory.ClientConfig()
-	if err != nil {
-		return err
-	}
-	namespace, _, err := factory.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-	client := client.NewOrDie(clientConfig)
-
-	// delete objects  from kubernetes
-	for name := range komposeObject.ServiceConfigs {
-		//delete svc
-		rpService, err := kubectl.ReaperFor(api.Kind("Service"), client)
-		if err != nil {
-			return err
-		}
-		//FIXME: timeout = 300s, gracePeriod is nil
-		err = rpService.Stop(namespace, name, 300*time.Second, nil)
-		if err != nil {
-			return err
-		} else {
-			logrus.Infof("Successfully deleted service: %s", name)
-		}
-
-		//delete deployment
-		rpDeployment, err := kubectl.ReaperFor(extensions.Kind("Deployment"), client)
-		if err != nil {
-			return err
-		}
-		//FIXME: timeout = 300s, gracePeriod is nil
-		err = rpDeployment.Stop(namespace, name, 300*time.Second, nil)
-		if err != nil {
-			return err
-		} else {
-			logrus.Infof("Successfully deleted deployment: %s", name)
-		}
-	}
+	//	factory := cmdutil.NewFactory(nil)
+	//	clientConfig, err := factory.ClientConfig()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	namespace, _, err := factory.DefaultNamespace()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	client := client.NewOrDie(clientConfig)
+	//
+	//	// delete objects  from kubernetes
+	//	for name := range komposeObject.ServiceConfigs {
+	//		//delete svc
+	//		rpService, err := kubectl.ReaperFor(v1.Kind("Service"), client)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		//FIXME: timeout = 300s, gracePeriod is nil
+	//		err = rpService.Stop(namespace, name, 300*time.Second, nil)
+	//		if err != nil {
+	//			return err
+	//		} else {
+	//			logrus.Infof("Successfully deleted service: %s", name)
+	//		}
+	//
+	//		//delete deployment
+	//		rpDeployment, err := kubectl.ReaperFor(v1beta1.Kind("Deployment"), client)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		//FIXME: timeout = 300s, gracePeriod is nil
+	//		err = rpDeployment.Stop(namespace, name, 300*time.Second, nil)
+	//		if err != nil {
+	//			return err
+	//		} else {
+	//			logrus.Infof("Successfully deleted deployment: %s", name)
+	//		}
+	//	}
 	return nil
 }

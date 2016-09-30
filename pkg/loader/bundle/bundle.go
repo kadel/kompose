@@ -92,7 +92,7 @@ func loadPorts(service bundlefile.Service) ([]kobject.Ports, string) {
 		ports = append(ports, kobject.Ports{
 			HostPort:      int32(port.Port),
 			ContainerPort: int32(port.Port),
-			Protocol:      p,
+			Protocol:      string(p),
 		})
 	}
 	return ports, ""

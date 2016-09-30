@@ -31,12 +31,10 @@ import (
 	"github.com/skippbox/kompose/pkg/kobject"
 	"github.com/skippbox/kompose/pkg/transformer"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/runtime"
-
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"k8s.io/client-go/1.5/pkg/api"
+	v1 "k8s.io/client-go/1.5/pkg/api/v1"
+	v1beta1 "k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/1.5/pkg/runtime"
 )
 
 /**
@@ -135,21 +133,11 @@ func PrintList(objects []runtime.Object, opt kobject.ConvertOptions) error {
 		list := &api.List{}
 		// convert objects to versioned and add them to list
 		for _, object := range objects {
-			versionedObject, err := convertToVersion(object, unversioned.GroupVersion{})
-			if err != nil {
-				return err
-			}
 
-			list.Items = append(list.Items, versionedObject)
+			list.Items = append(list.Items, object)
+		}
 
-		}
-		// version list itself
-		listVersion := unversioned.GroupVersion{Group: "", Version: "v1"}
-		convertedList, err := convertToVersion(list, listVersion)
-		if err != nil {
-			return err
-		}
-		data, err := marshal(convertedList, opt.GenerateYaml)
+		data, err := marshal(list, opt.GenerateYaml)
 		if err != nil {
 			return fmt.Errorf("Error in marshalling the List: %v", err)
 		}
@@ -158,26 +146,22 @@ func PrintList(objects []runtime.Object, opt kobject.ConvertOptions) error {
 		var file string
 		// create a separate file for each provider
 		for _, v := range objects {
-			versionedObject, err := convertToVersion(v, unversioned.GroupVersion{})
-			if err != nil {
-				return err
-			}
 
-			data, err := marshal(versionedObject, opt.GenerateYaml)
+			data, err := marshal(v, opt.GenerateYaml)
 			if err != nil {
 				return err
 			}
 
 			switch t := v.(type) {
-			case *api.ReplicationController:
+			case *v1.ReplicationController:
 				file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
-			case *extensions.Deployment:
+			case *v1beta1.Deployment:
 				file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
-			case *extensions.DaemonSet:
+			case *v1beta1.DaemonSet:
 				file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
-			case *deployapi.DeploymentConfig:
-				file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
-			case *api.Service:
+				//	case *deployapi.DeploymentConfig:
+				//		file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
+			case *v1.Service:
 				file = transformer.Print(t.Name, strings.ToLower(t.Kind), data, opt.ToStdout, opt.GenerateYaml, f)
 			}
 			files = append(files, file)
@@ -203,25 +187,6 @@ func marshal(obj runtime.Object, yamlFormat bool) (data []byte, err error) {
 	return
 }
 
-// Convert object to versioned object
-// if groupVersion is  empty (unversioned.GroupVersion{}), use version from original object (obj)
-func convertToVersion(obj runtime.Object, groupVersion unversioned.GroupVersion) (runtime.Object, error) {
-
-	var version unversioned.GroupVersion
-
-	if groupVersion.IsEmpty() {
-		objectVersion := obj.GetObjectKind().GroupVersionKind()
-		version = unversioned.GroupVersion{Group: objectVersion.Group, Version: objectVersion.Version}
-	} else {
-		version = groupVersion
-	}
-	convertedObject, err := api.Scheme.ConvertToVersion(obj, version)
-	if err != nil {
-		return nil, err
-	}
-	return convertedObject, nil
-}
-
 func PortsExist(name string, service kobject.ServiceConfig) bool {
 	if len(service.Port) == 0 {
 		logrus.Warningf("[%s] Service cannot be created because of missing port.", name)
@@ -232,7 +197,7 @@ func PortsExist(name string, service kobject.ServiceConfig) bool {
 }
 
 // create a k8s service
-func CreateService(name string, service kobject.ServiceConfig, objects []runtime.Object) *api.Service {
+func CreateService(name string, service kobject.ServiceConfig, objects []runtime.Object) *v1.Service {
 	svc := InitSvc(name, service)
 
 	// Configure the service ports.
@@ -261,7 +226,7 @@ func UpdateKubernetesObjects(name string, service kobject.ServiceConfig, objects
 	annotations := transformer.ConfigAnnotations(service)
 
 	// fillTemplate fills the pod template with the value calculated from config
-	fillTemplate := func(template *api.PodTemplateSpec) {
+	fillTemplate := func(template *v1.PodTemplateSpec) {
 		if len(service.ContainerName) > 0 {
 			template.Spec.Containers[0].Name = service.ContainerName
 		}
@@ -273,7 +238,7 @@ func UpdateKubernetesObjects(name string, service kobject.ServiceConfig, objects
 		template.Spec.Volumes = volumes
 		// Configure the container privileged mode
 		if service.Privileged == true {
-			template.Spec.Containers[0].SecurityContext = &api.SecurityContext{
+			template.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
 				Privileged: &service.Privileged,
 			}
 		}
@@ -282,18 +247,18 @@ func UpdateKubernetesObjects(name string, service kobject.ServiceConfig, objects
 		// Configure the container restart policy.
 		switch service.Restart {
 		case "", "always":
-			template.Spec.RestartPolicy = api.RestartPolicyAlways
+			template.Spec.RestartPolicy = v1.RestartPolicyAlways
 		case "no":
-			template.Spec.RestartPolicy = api.RestartPolicyNever
+			template.Spec.RestartPolicy = v1.RestartPolicyNever
 		case "on-failure":
-			template.Spec.RestartPolicy = api.RestartPolicyOnFailure
+			template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
 		default:
 			logrus.Fatalf("Unknown restart policy %s for service %s", service.Restart, name)
 		}
 	}
 
 	// fillObjectMeta fills the metadata with the value calculated from config
-	fillObjectMeta := func(meta *api.ObjectMeta) {
+	fillObjectMeta := func(meta *v1.ObjectMeta) {
 		meta.Annotations = annotations
 	}
 
