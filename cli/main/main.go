@@ -19,7 +19,6 @@ package main
 import (
 	"os"
 
-	cliApp "github.com/skippbox/kompose/cli/app"
 	"github.com/skippbox/kompose/cli/command"
 	"github.com/skippbox/kompose/version"
 	"github.com/urfave/cli"
@@ -33,10 +32,11 @@ func main() {
 	app.Author = "Skippbox Kompose Contributors"
 	app.Email = "https://github.com/skippbox/kompose"
 	app.EnableBashCompletion = true
-	app.Before = cliApp.BeforeApp
+	app.Before = command.BeforeApp
 	app.Flags = append(command.CommonFlags())
 	app.Commands = []cli.Command{
-		command.ConvertCommand(),
+		// convert command is added in BeforeApp fce
+		//command.ConvertCommand(),
 		command.UpCommand(),
 		command.DownCommand(),
 		// TODO: enable these commands and update docs once we fix them

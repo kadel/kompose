@@ -18,13 +18,27 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/skippbox/kompose/cli/app"
 	"github.com/urfave/cli"
 )
 
+// Hook for erroring and exit out on warning
+type errorOnWarningHook struct{}
+
+func (errorOnWarningHook) Levels() []logrus.Level {
+	return []logrus.Level{logrus.WarnLevel}
+}
+
+func (errorOnWarningHook) Fire(entry *logrus.Entry) error {
+	logrus.Fatalln(entry.Message)
+	return nil
+}
+
 // ConvertCommand defines the kompose convert subcommand.
-func ConvertCommand() cli.Command {
+func ConvertKubernetesCommand() cli.Command {
 	return cli.Command{
 		Name:  "convert",
 		Usage: fmt.Sprintf("Convert Docker Compose file (e.g. %s) to Kubernetes objects", app.DefaultComposeFile),
@@ -74,6 +88,42 @@ func ConvertCommand() cli.Command {
 	}
 }
 
+func ConvertOpenShiftCommand() cli.Command {
+	return cli.Command{
+		Name:  "convert",
+		Usage: fmt.Sprintf("Convert Docker Compose file (e.g. %s) to OpenShift objects", app.DefaultComposeFile),
+		Action: func(c *cli.Context) {
+			app.Convert(c)
+		},
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:   "out,o",
+				Usage:  "Specify file name in order to save objects into",
+				EnvVar: "OUTPUT_FILE",
+			},
+
+			cli.BoolFlag{
+				Name:  "deploymentconfig,dc",
+				Usage: "Generate a DeploymentConfig for OpenShift",
+			},
+
+			cli.IntFlag{
+				Name:  "replicas",
+				Value: 1,
+				Usage: "Specify the number of replicas in the generated resource spec (default 1)",
+			},
+			cli.BoolFlag{
+				Name:  "yaml, y",
+				Usage: "Generate resource file in yaml format",
+			},
+			cli.BoolFlag{
+				Name:  "stdout",
+				Usage: "Print Kubernetes objects to stdout",
+			},
+		},
+	}
+}
+
 // UpCommand defines the kompose up subcommand.
 func UpCommand() cli.Command {
 	return cli.Command{
@@ -104,12 +154,17 @@ func CommonFlags() []cli.Flag {
 			Usage:  "Specify a Distributed Application Bundle (DAB) file",
 			EnvVar: "DAB_FILE",
 		},
-
 		cli.StringFlag{
 			Name:   "file,f",
 			Usage:  fmt.Sprintf("Specify an alternative compose file (default: %s)", app.DefaultComposeFile),
 			Value:  app.DefaultComposeFile,
 			EnvVar: "COMPOSE_FILE",
+		},
+		cli.StringFlag{
+			Name:   "provider,p",
+			Usage:  fmt.Sprintf("Specify output provider (default: %s)", app.DefaultComposeFile),
+			Value:  app.DefaultProvider,
+			EnvVar: "PROVIDER",
 		},
 		// creating a flag to suppress warnings
 		cli.BoolFlag{
@@ -127,4 +182,28 @@ func CommonFlags() []cli.Flag {
 			Usage: "Treat any warning as error",
 		},
 	}
+}
+
+// BeforeApp is an action that is executed before any cli command.
+func BeforeApp(c *cli.Context) error {
+	if c.GlobalBool("verbose") {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else if c.GlobalBool("suppress-warnings") {
+		logrus.SetLevel(logrus.ErrorLevel)
+	} else if c.GlobalBool("error-on-warning") {
+		hook := errorOnWarningHook{}
+		logrus.AddHook(hook)
+	}
+
+	provider := strings.ToLower(c.GlobalString("provider"))
+	switch provider {
+	case "kubernetes":
+		c.App.Commands = append(c.App.Commands, ConvertKubernetesCommand())
+	case "openshift":
+		c.App.Commands = append(c.App.Commands, ConvertOpenShiftCommand())
+	default:
+		logrus.Fatalf("Unknow provider %s", provider)
+	}
+
+	return nil
 }
