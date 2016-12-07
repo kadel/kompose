@@ -22,6 +22,6 @@ source "$(dirname "$BASH_SOURCE")/.build"
 # Install packages that are dependencies of the test.
 go test -i -race -cover $( go list github.com/kubernetes-incubator/kompose/... | grep -v '/vendor/' )
 # run test 
-go list -f '"go test -race -cover -v -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"' github.com/kubernetes-incubator/kompose/...  | grep -v "vendor" #| xargs -L 1 sh -c 
+go list -f '"go test -race -cover -v -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"' github.com/kubernetes-incubator/kompose/...  | grep -v "vendor" | xargs -L 1 sh -c 
 
 
