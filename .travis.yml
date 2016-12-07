@@ -2,9 +2,9 @@
 dist : trusty
 sudo: required
 
-env:
-  global:
-    secure: "h3UAsxDu3dTxNQlfRMeQ8ojH1YCUYFe+nnJGgTWLx+88zwPVtnlKi3cim9ODJ4Xfka+LrRDnSe/F+giodjTpBzAKnAHUF32e3YZJXCKcTGn3r0/o3mJZxb63fBAImLvjgbNrXAVlonbJkt6OV97hm839M6V8COBOoHieWe9e9O0vKC9kLXnM1em/rRmvPOVCAO0qoDyPBmh1tkgzn9pwMbOkVoyb0WYW2WMA8WBSRHCInoaF570vOnOYdprfB3xM4P79XOSb7LhcAuZRccnOYmUD33jcDiNI+Jg9fYSJgJNqcY3ogDQ1ly310Tlw3YQYB7VAisVL2BKymGoHAOmL1iXMhlzRdLkvwFuIJj+U6/pscdKrAtA8op5w1tWuqpsArmLi69J2tBQvwMqrpHDA/c35TnE7swQ6S4SstffhJBdPgYnPJTC5hR5vUtp8mFSEr9u5YIKG1GFTR5N/LKBroZtHODyPeuLUWUI7fYCpQGLFLP/H8UF0K8KgzMQnyWgI4jE7iA1tY/JQPTPhRE+u1TqOklFdtAgBloJ+hQNBkno1rbvGnYo9zQCF/RxZeQTPDbCUr9rsbQeofxxHkqs+ndDw/Y/gsvdUw6fI1oyu+ntgqLohWZZlhQzTER0W62oJTGVJF7tQMBGr7y+96YOgAuLU5zesqF5mP4st1g3Kq08="
+#env:
+#  global:
+#    secure: "h3UAsxDu3dTxNQlfRMeQ8ojH1YCUYFe+nnJGgTWLx+88zwPVtnlKi3cim9ODJ4Xfka+LrRDnSe/F+giodjTpBzAKnAHUF32e3YZJXCKcTGn3r0/o3mJZxb63fBAImLvjgbNrXAVlonbJkt6OV97hm839M6V8COBOoHieWe9e9O0vKC9kLXnM1em/rRmvPOVCAO0qoDyPBmh1tkgzn9pwMbOkVoyb0WYW2WMA8WBSRHCInoaF570vOnOYdprfB3xM4P79XOSb7LhcAuZRccnOYmUD33jcDiNI+Jg9fYSJgJNqcY3ogDQ1ly310Tlw3YQYB7VAisVL2BKymGoHAOmL1iXMhlzRdLkvwFuIJj+U6/pscdKrAtA8op5w1tWuqpsArmLi69J2tBQvwMqrpHDA/c35TnE7swQ6S4SstffhJBdPgYnPJTC5hR5vUtp8mFSEr9u5YIKG1GFTR5N/LKBroZtHODyPeuLUWUI7fYCpQGLFLP/H8UF0K8KgzMQnyWgI4jE7iA1tY/JQPTPhRE+u1TqOklFdtAgBloJ+hQNBkno1rbvGnYo9zQCF/RxZeQTPDbCUr9rsbQeofxxHkqs+ndDw/Y/gsvdUw6fI1oyu+ntgqLohWZZlhQzTER0W62oJTGVJF7tQMBGr7y+96YOgAuLU5zesqF5mP4st1g3Kq08="
 
 
 language: go
@@ -27,7 +27,8 @@ script:
   - make test-unit
   # collect all .coverprofile and report to coveralls.io
   - gover
-  - goveralls -service=travis-ci -repotoken $COVERALLS_TOKEN
+  - goveralls -coverprofile=gover.coverprofile -service=travis-ci 
+  #-repotoken $COVERALLS_TOKEN
   
   # make test-cmd requires kompose binary
   - make bin
