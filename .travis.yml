@@ -14,6 +14,8 @@ go:
 
 before_install:
   - go get github.com/mattn/goveralls
+  - go get github.com/modocache/gover
+
 
 install:
   - mkdir -p $GOPATH/src/github.com/kubernetes-incubator
@@ -23,6 +25,9 @@ install:
 script:
   - make validate
   - make test-unit
+  # collect all .coverprofile and report to coveralls.io
+  - gover
+  - goveralls -service=travis-ci -repotoken $COVERALLS_TOKEN
   
   # make test-cmd requires kompose binary
   - make bin
@@ -32,4 +37,4 @@ script:
   - cp kompose $GOPATH/bin/
 
   - make test-cmd
-  - goveralls -service=travis-ci -repotoken $COVERALLS_TOKEN
+  
