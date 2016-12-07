@@ -14,7 +14,9 @@ before_install:
   - go get github.com/mattn/goveralls
 
 install:
-  - true
+  - mkdir -p $GOPATH/src/github.com/kubernetes-incubator
+  - mv $GOPATH/src/github.com/kadel/kompose $GOPATH/src/github.com/kubernetes-incubator/kompose
+  - cd $GOPATH/src/github.com/kubernetes-incubator/kompose
 
 script:
   - make validate
@@ -28,4 +30,4 @@ script:
   - cp kompose $GOPATH/bin/
 
   - make test-cmd
-  - goveralls -service=travis-ci
+  - goveralls -service=travis-ci -repotoken $COVERALLS_TOKEN
