@@ -469,6 +469,8 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 	}
 	sort.Strings(sortedKeys)
 
+	composeFileDir, _ := transformer.GetComposeFileDir(opt.InputFiles)
+
 	for _, name := range sortedKeys {
 		service := komposeObject.ServiceConfigs[name]
 		var objects []runtime.Object
@@ -494,6 +496,9 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 			} else {
 				svc := k.CreateHeadlessService(name, service, objects)
 				objects = append(objects, svc)
+			}
+			if service.Build != "" {
+				transformer.LocalBuild(name, service, composeFileDir)
 			}
 		}
 

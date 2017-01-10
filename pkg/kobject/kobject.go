@@ -37,6 +37,7 @@ type ConvertOptions struct {
 	CreateRC                    bool
 	CreateDS                    bool
 	CreateDeploymentConfig      bool
+	CreateBuildConfig           bool
 	BuildRepo                   string
 	BuildBranch                 string
 	CreateChart                 bool
