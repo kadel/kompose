@@ -21,9 +21,8 @@ source $KOMPOSE_ROOT/script/test/cmd/lib.sh
 # Tests related to docker-compose file in /script/test/fixtures/etherpad
 convert::expect_failure "kompose -f $KOMPOSE_ROOT/script/test/fixtures/etherpad/docker-compose.yml convert --stdout"
 
-# commenting this test case out until image handling is fixed
 convert::expect_failure "kompose -f $KOMPOSE_ROOT/script/test/fixtures/etherpad/docker-compose-no-image.yml convert --stdout"
-convert::expect_warning "kompose -f $KOMPOSE_ROOT/script/test/fixtures/etherpad/docker-compose-no-ports.yml convert --stdout" "No ports defined, we will create a Headless service."
+convert::expect_success "kompose -f $KOMPOSE_ROOT/script/test/fixtures/etherpad/docker-compose-no-ports.yml convert --stdout"
 
 export $(cat $KOMPOSE_ROOT/script/test/fixtures/etherpad/envs)
 # kubernetes test
