@@ -63,9 +63,7 @@ const TIMEOUT = 300
 // this is map to make searching for keys easier
 // to make sure that unsupported key is not going to be reported twice
 // by keeping record if already saw this key in another service
-var unsupportedKey = map[string]bool{
-	"Build": false,
-}
+var unsupportedKey = map[string]bool{}
 
 // CheckUnsupportedKey checks if given komposeObject contains
 // keys that are not supported by this tranfomer.

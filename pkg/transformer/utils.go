@@ -27,7 +27,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ghodss/yaml"
 	"github.com/kubernetes-incubator/kompose/pkg/kobject"
-	"github.com/kubernetes-incubator/kompose/pkg/utils"
+	"github.com/kubernetes-incubator/kompose/pkg/utils/docker"
 
 	"path/filepath"
 
@@ -195,6 +195,12 @@ func GetComposeFileDir(inputFiles []string) (string, error) {
 
 // LocalBuild builds a local Docker image, tags it and pushes it to a Docker registry
 func LocalBuild(name string, service kobject.ServiceConfig, composeFileDir string) {
-	image := utils.DockerBuildImage(name, service, composeFileDir)
-	utils.DockerPushImage(name, image)
+	fmt.Printf("composeFileDir = %#v\n", composeFileDir)
+	fmt.Printf("service.Build = %#v\n", service.Build)
+	if err := docker.Build(service.Build, service.Image); err != nil {
+		logrus.Errorf(err.Error())
+	}
+	if err := docker.Push(service.Image); err != nil {
+		logrus.Errorf(err.Error())
+	}
 }
