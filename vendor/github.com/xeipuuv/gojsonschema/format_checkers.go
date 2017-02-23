@@ -77,7 +77,7 @@ var (
 			"ipv6":      IPV6FormatChecker{},
 			"uri":       URIFormatChecker{},
 			"uuid":      UUIDFormatChecker{},
-			"regex":     RegexFormatChecker{},
+			"regex":     UUIDFormatChecker{},
 		},
 	}
 

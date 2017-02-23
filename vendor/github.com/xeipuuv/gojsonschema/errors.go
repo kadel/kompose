@@ -2,18 +2,10 @@ package gojsonschema
 
 import (
 	"bytes"
-	"sync"
 	"text/template"
 )
 
-var errorTemplates errorTemplate = errorTemplate{template.New("errors-new"),sync.RWMutex{}}
-
-// template.Template is not thread-safe for writing, so some locking is done
-// sync.RWMutex is used for efficiently locking when new templates are created
-type errorTemplate struct {
-	*template.Template
-	sync.RWMutex
-}
+var errorTemplates *template.Template
 
 type (
 	// RequiredError. ErrorDetails: property string
@@ -249,17 +241,14 @@ func formatErrorDescription(s string, details ErrorDetails) string {
 	var descrAsBuffer bytes.Buffer
 	var err error
 
-	errorTemplates.RLock()
+	if errorTemplates == nil {
+		errorTemplates = template.New("all-errors")
+	}
+
 	tpl = errorTemplates.Lookup(s)
-	errorTemplates.RUnlock()
-
 	if tpl == nil {
-		errorTemplates.Lock()
 		tpl = errorTemplates.New(s)
-
 		tpl, err = tpl.Parse(s)
-		errorTemplates.Unlock()
-
 		if err != nil {
 			return err.Error()
 		}
